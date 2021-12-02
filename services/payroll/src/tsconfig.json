@@ -1,0 +1,24 @@
+{
+    "compilerOptions": {
+      "target": "es6",
+      "module": "commonjs",
+      "rootDir": "./",
+      "outDir": "./build",
+      "esModuleInterop": true,
+      "strict": true, 
+      "sourceMap": true,
+      "allowJs": true,
+      "lib": [
+        "es2017",
+        "dom",
+        "es7",
+        "es6"
+      ],
+      "allowUnusedLabels": false,
+      "noImplicitReturns": true,
+      "experimentalDecorators": true,
+      "emitDecoratorMetadata": true,
+      "resolveJsonModule": true,
+      "skipLibCheck": true
+    }
+}

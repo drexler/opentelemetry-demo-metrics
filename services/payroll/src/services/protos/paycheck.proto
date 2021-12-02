@@ -1,0 +1,77 @@
+syntax = "proto3"; 
+
+import "google/protobuf/empty.proto";
+
+option csharp_namespace = "app";
+
+package paycheck;
+
+service PayService {
+    rpc GetAllPaychecks(google.protobuf.Empty) returns (GetAllPaychecksResponse);
+    rpc GetPaycheck(GetPaycheckRequest) returns (GetPaycheckResponse);
+    rpc GetEmployeePaychecks(GetEmployeePaychecksRequest) returns (GetEmployeePaychecksResponse);
+}
+
+message PayAmount {
+    double current_period = 1;
+    double year_to_date = 2;
+}
+
+enum PaymentType {
+    DIRECT_DEPOSIT = 0;
+    COLD_HARD_CASH = 1;
+    CRYPTO = 2;
+}
+
+message PaymentMode {
+    PaymentType type = 1;
+    string id = 2;
+}
+
+message Earnings {
+    string type = 1;
+    double rate = 2;
+    int32 hours = 3;
+    PayAmount gross_pay = 4;
+}
+
+message Deductions {
+    PayAmount federal_tax = 1;
+    PayAmount state_tax = 2; 
+    PayAmount social_security = 3; 
+    PayAmount medicare = 4; 
+    PayAmount health = 5; 
+    PayAmount dental = 6; 
+    PayAmount retirement = 7;
+}
+
+message Paycheck {
+    string id = 1;
+    string employee_id = 2;
+    string period_start_date = 3; 
+    string period_end_date = 4;
+    Earnings earnings = 5;
+    Deductions deductions = 6;
+    PaymentMode payment_mode = 7;
+}
+
+message GetAllPaychecksResponse {
+    repeated Paycheck paychecks = 1;
+}
+
+message GetPaycheckRequest {
+    string paycheck_id = 1;
+}
+
+message GetPaycheckResponse {
+    Paycheck paycheck = 1;
+}
+
+message GetEmployeePaychecksRequest {
+    string employee_id = 1;
+}
+
+message GetEmployeePaychecksResponse {
+    repeated Paycheck paychecks = 1;
+}
+

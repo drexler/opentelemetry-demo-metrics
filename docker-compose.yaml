@@ -1,0 +1,119 @@
+version: "3.8"
+
+services:
+##------------------------------------------------------
+### OpenTelemetry Collector
+##------------------------------------------------------
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.21.0
+    command: [
+      "--config=/conf/collector-config.yaml", 
+      "--log-level=DEBUG"
+    ]
+    volumes:
+      - ./collector-config.yaml:/conf/collector-config.yaml
+    ports:
+      - "9464:9464"
+      - "4317:4317"
+      - "55681:55681"
+    depends_on:
+      - jaeger-all-in-one
+      - zipkin-all-in-one
+
+  # Tracing
+  zipkin-all-in-one:
+    image: openzipkin/zipkin:latest
+    ports:
+      - "9411:9411"
+
+  # Tracing 
+  jaeger-all-in-one:
+    image: jaegertracing/all-in-one:1.22.0
+    ports: 
+      - "16686:16686"
+      - "14268"
+      - "14250"
+
+##------------------------------------------------------
+### Application Services
+##------------------------------------------------------
+  payroll-service:
+    container_name: payroll-service
+    build:
+      context: ./services/payroll
+      dockerfile: Dockerfile
+    ports:
+      - "55050:55050"
+    environment:
+      - SERVICE_PORT=55050
+      - OTEL_COLLECTOR_URI=http://otel-collector:4317
+      - EMPLOYEE_SERVICE_URI=employee-service:50052
+      - PAYCHECK_SERVICE_URI=paycheck-service:50051
+      - DIRECT_DEPOSIT_SERVICE_URI=direct-deposit-service:50050
+
+  employee-service:
+    container_name: employee-service
+    build:
+      context: ./services/employee
+      dockerfile: Dockerfile
+    environment:
+        - SERVICE_PORT=50052
+        - OTEL_COLLECTOR_URI=http://otel-collector:4317
+        - DATABASE_URL=postgresql://postgres:password@employee-db:5432/employee
+    depends_on:
+      - employee-db 
+
+  paycheck-service:
+    container_name: paycheck-service
+    build:
+      context: ./services/paycheck
+      dockerfile: Dockerfile
+    environment:
+        - SERVICE_PORT=50051
+        - OTEL_COLLECTOR_URI=http://otel-collector:4317
+        - DATABASE_USER=mongo
+        - DATABASE_USER_PASSWORD=password
+        - DATABASE_SERVER_HOSTNAME=pay-db
+    depends_on:
+      - pay-db
+
+  direct-deposit-service:
+    container_name: direct-deposit-service
+    build:
+        context: ./services/direct-deposit
+        dockerfile: Dockerfile
+    environment:
+        - SERVICE_PORT=50050
+        - OTEL_COLLECTOR_URI=http://otel-collector:4317
+        - DATABASE_USER=mongo
+        - DATABASE_USER_PASSWORD=password
+        - DATABASE_SERVER_HOSTNAME=pay-db
+    depends_on:
+        - pay-db
+
+##------------------------------------------------------
+### Databases
+##------------------------------------------------------
+  employee-db:
+    container_name: employee-database
+    build:
+      context: ./databases/employee
+      dockerfile: Dockerfile
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=employee
+  
+  pay-db:
+    container_name: pay-database
+    build: 
+        context: ./databases/pay
+        dockerfile: Dockerfile
+    ports:
+      - "27017:27017"
+    environment: 
+      MONGO_INITDB_ROOT_USERNAME: mongo
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: pay
